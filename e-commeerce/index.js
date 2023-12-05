@@ -1,6 +1,10 @@
 const express = require('express');
+const bodyParser = require('body-parser')
 
 const app = express();
+
+// all of defrent route handler have the middleware function applied.
+app.use(bodyParser.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
     res.send(`
@@ -15,28 +19,14 @@ app.get('/', (req, res) => {
     `)
 })
 
-const bodyParser = (req, res, next) => {
-    if (req.method === 'POST') {
-        req.on('data', data => {
-            const parsed = data.toString('utf8').split('&');
-            const formData = {}
-            for (let pair of parsed) {
-                const [key, value] = pair.split('=');
-                formData[key] = value;
-            }
-            req.body = formData;
-            next();
-        })
-    } else {
-        next();
-    }
 
-}
 
-app.post('/', bodyParser, (req, res) => {
+app.post('/', (req, res) => {
     console.log(req.body)
     res.send('Account created!!!')
 })
+
+
 
 app.listen(3000, () => {
     console.log("Listening ")
