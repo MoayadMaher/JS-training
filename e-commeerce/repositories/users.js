@@ -93,7 +93,7 @@ class UsersRepositoty {
 const test = async () => {
     const repo = new UsersRepositoty('users.json')
 
-    const user = await repo.getOneBy({
+    const user = await repo.create({
         email: 'test@test.com',
         password: 'mypassword'
     });
