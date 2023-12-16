@@ -1,6 +1,9 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const { error } = require('console');
+const util = require('util');
+
+const scrypt = util.promisify(crypto.scrypt);
 
 class UsersRepositoty {
     constructor(filename) {
@@ -24,12 +27,31 @@ class UsersRepositoty {
     }
 
     async create(attrs) {
+        // attrs === {email: "", password:""}
         attrs.id = this.randomID();
 
+        // this salt will added to password befor hashing to prevent rainbow table attack
+        const salt = crypto.randomBytes(8).toString('hex');
+        const buf = await scrypt(attrs.password, salt, 64);
+
         const records = await this.getAll();
-        records.push(attrs);
+        const record = {
+            ...attrs,
+            password: `${buf.toString('hex')}.${salt}`
+        }
+        records.push(record);
 
         await this.writeAll(records)
+        return record;
+    }
+
+    async comparePasswords(saved, supplied) {
+        // Seved -> password seved in our database. 'hashed.salt'
+        // Supplied -> password given to us by a user trying sign in
+        const [hashed, salt] = saved.split('.');
+        const hashedSuppliedBuf = await scrypt(supplied, salt, 64);
+
+        return hashed === hashedSuppliedBuf.toString('hex');
     }
 
     async writeAll(records) {
@@ -89,16 +111,8 @@ class UsersRepositoty {
 }
 
 
+module.exports = new UsersRepositoty('users.json');
 
-const test = async () => {
-    const repo = new UsersRepositoty('users.json')
-
-    const user = await repo.create({
-        email: 'test@test.com',
-        password: 'mypassword'
-    });
-
-    console.log(user);
-
-}
-test();
+// Another file ... 
+// const repo = requiire(./users)
+// repo.getAll()
